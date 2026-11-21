@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Talkie Talkie - Sign Up</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    .brand-title {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  user-select: none;
+}
+
+.brand-talkie {
+  font-size: clamp(2.4rem, 9vw, 4rem);
+  line-height: 0.95;
+  font-weight: 800;
+  letter-spacing: -0.06em;
+
+  background: linear-gradient(
+    135deg,
+    #4f46e5 0%,
+    #6366f1 35%,
+    #06b6d4 70%,
+    #4f46e5 100%
+  );
+
+  background-size: 250% 250%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+
+  animation: brandGradient 5s ease infinite;
+
+  text-shadow:
+    0 8px 20px rgba(79, 70, 229, 0.12);
+}
+
+.brand-talkie-second {
+  animation-delay: 0.35s;
+}
+
+@keyframes brandGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.brand-title:hover .brand-talkie {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+.brand-talkie {
+  transition:
+    transform 0.35s ease,
+    filter 0.35s ease;
+}
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Quicksand", sans-serif;
+      background: #e8edf3;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .clay-card {
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow:
+        18px 18px 40px rgba(163, 177, 198, 0.45),
+        -18px -18px 40px rgba(255, 255, 255, 0.9);
+    }
+
+    .clay-button {
+      box-shadow:
+        8px 8px 18px rgba(163, 177, 198, 0.45),
+        -8px -8px 18px rgba(255, 255, 255, 0.95);
+    }
+
+    .clay-button:active {
+      transform: scale(0.97);
+      box-shadow:
+        inset 5px 5px 12px rgba(163, 177, 198, 0.35),
+        inset -5px -5px 12px rgba(255, 255, 255, 0.8);
+    }
+
+    .blob {
+      position: fixed;
+      border-radius: 9999px;
+      filter: blur(60px);
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .blob-one {
+      width: 260px;
+      height: 260px;
+      background: #a7d8ff;
+      top: -80px;
+      left: -70px;
+    }
+
+    .blob-two {
+      width: 300px;
+      height: 300px;
+      background: #d8b4fe;
+      right: -100px;
+      bottom: -100px;
+    }
+
+    .blob-three {
+      width: 180px;
+      height: 180px;
+      background: #99f6e4;
+      right: 15%;
+      top: 10%;
+    }
+
+    .equalizer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      height: 48px;
+    }
+
+    .equalizer span {
+      width: 7px;
+      border-radius: 999px;
+      background: linear-gradient(
+        to bottom,
+        #60a5fa,
+        #8b5cf6
+      );
+      animation: equalizer 1s ease-in-out infinite;
+    }
+
+    .equalizer span:nth-child(1) {
+      height: 18px;
+      animation-delay: 0s;
+    }
+
+    .equalizer span:nth-child(2) {
+      height: 32px;
+      animation-delay: 0.15s;
+    }
+
+    .equalizer span:nth-child(3) {
+      height: 42px;
+      animation-delay: 0.3s;
+    }
+
+    .equalizer span:nth-child(4) {
+      height: 28px;
+      animation-delay: 0.45s;
+    }
+
+    .equalizer span:nth-child(5) {
+      height: 18px;
+      animation-delay: 0.6s;
+    }
+
+    @keyframes equalizer {
+      0%,
+      100% {
+        transform: scaleY(0.6);
+        opacity: 0.65;
+      }
+
+      50% {
+        transform: scaleY(1);
+        opacity: 1;
+      }
+    }
+
+    .google-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  transition: transform 0.45s cubic-bezier(.2,.8,.2,1);
+}
+
+/* Google Signup Button */
+#google-signup-button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  cursor: pointer;
+}
+
+/* Moving light */
+#google-signup-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(
+    110deg,
+    transparent,
+    rgba(255,255,255,0.85),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.7s ease;
+  z-index: -1;
+}
+
+/* Soft Google-colored glow */
+#google-signup-button::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 20px;
+  background: linear-gradient(
+    90deg,
+    #4285f4,
+    #34a853,
+    #fbbc05,
+    #ea4335,
+    #4285f4
+  );
+  background-size: 300% 100%;
+  opacity: 0;
+  z-index: -2;
+  filter: blur(10px);
+  transition: opacity 0.35s ease;
+}
+
+/* Hover */
+#google-signup-button:hover {
+  transform: translateY(-4px) scale(1.015);
+
+  box-shadow:
+    10px 12px 24px rgba(163, 177, 198, 0.42),
+    -7px -7px 18px rgba(255,255,255,0.95),
+    0 0 24px rgba(66,133,244,0.18);
+
+  border-color: rgba(66,133,244,0.25);
+}
+
+#google-signup-button:hover::before {
+  left: 140%;
+}
+
+#google-signup-button:hover::after {
+  opacity: 0.45;
+  animation: googleGlow 3s linear infinite;
+}
+
+#google-signup-button:hover .google-icon {
+  transform: rotate(-8deg) scale(1.12);
+}
+
+/* Text animation */
+#google-signup-button:hover #btnText {
+  letter-spacing: 0.02em;
+}
+
+/* Click */
+#google-signup-button:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+/* Animated Google-color glow */
+@keyframes googleGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 300% 50%;
+  }
+}
+
+/* Loading state */
+#google-signup-button:disabled {
+  cursor: wait;
+  transform: none;
+  opacity: 0.75;
+}
+
+    @media (prefers-reduced-motion: reduce) {
+      .equalizer span {
+        animation: none;
+      }
+    }
+    
+  </style>
+</head>
+
+<body class="flex items-center justify-center px-5 py-10">
+
+  <!-- Background decoration -->
+  <div class="blob blob-one"></div>
+  <div class="blob blob-two"></div>
+  <div class="blob blob-three"></div>
+
+  <!-- Main Card -->
+  <main
+    class="clay-card relative z-10 w-full max-w-md rounded-[34px] px-7 py-9 sm:px-10 sm:py-10"
+  >
+
+    <!-- Logo / Equalizer -->
+    <div class="flex justify-center mb-7">
+      <div
+        class="w-24 h-24 rounded-full bg-white flex items-center justify-center clay-button"
+      >
+        <div class="equalizer">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Heading -->
+    <div class="brand-title">
+  <span class="brand-talkie">Talkie</span>
+  <span class="brand-talkie brand-talkie-second">Talkie</span>
+</div>
+
+      <h1 class="text-3xl sm:text-4xl font-bold text-slate-800">
+        Create Your Account
+      </h1>
+
+      <p class="mt-3 text-sm sm:text-base text-slate-500 leading-relaxed">
+        
+      </p>
+    </div>
+
+    <!-- Google Sign Up -->
+    <button
+      id="google-signup-button"
+      type="button"
+      class="clay-button w-full h-14 rounded-2xl bg-white border border-slate-100 text-slate-700 font-bold flex items-center justify-center gap-3 transition-all duration-200 hover:bg-slate-50"
+    >
+
+      <!-- Google Icon -->
+      <svg
+        class="google-icon"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          fill="#4285F4"
+          d="M21.35 12.23c0-.79-.07-1.55-.23-2.27H12v4.3h5.22a4.46 4.46 0 0 1-1.94 2.93v2.43h3.14c1.84-1.69 2.93-4.18 2.93-7.39z"
+        />
+        <path
+          fill="#34A853"
+          d="M12 21.5c2.63 0 4.84-.87 6.45-2.36l-3.14-2.43c-.87.58-1.98.93-3.31.93-2.54 0-4.69-1.72-5.46-4.03H3.29v2.5A9.75 9.75 0 0 0 12 21.5z"
+        />
+        <path
+          fill="#FBBC05"
+          d="M6.54 13.61A5.86 5.86 0 0 1 6.23 12c0-.56.1-1.1.31-1.61v-2.5H3.29A9.75 9.75 0 0 0 2.25 12c0 1.57.38 3.06 1.04 4.39l3.25-2.78z"
+        />
+        <path
+          fill="#EA4335"
+          d="M12 6.36c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.84 3.45 14.63 2.5 12 2.5a9.75 9.75 0 0 0-8.71 5.39l3.25 2.5C6.54 8.08 8.69 6.36 12 6.36z"
+        />
+      </svg>
+
+      <span id="btnText">Continue with Google</span>
+
+      <!-- Loading Spinner -->
+      <svg
+        id="spinner"
+        class="hidden animate-spin w-5 h-5 text-slate-500"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        ></circle>
+
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+        ></path>
+      </svg>
+    </button>
+
+    <!-- Terms -->
+    <p class="text-center text-[11px] sm:text-xs text-slate-400 mt-5 leading-relaxed">
+      By continuing, you agree to our
+      <a
+        href="#"
+        class="font-semibold text-slate-500 hover:text-slate-700"
+      >
+        Terms of Service
+      </a>
+      and
+      <a
+        href="#"
+        class="font-semibold text-slate-500 hover:text-slate-700"
+      >
+        Privacy Policy
+      </a>.
+    </p>
+
+    <!-- Divider -->
+    <div class="flex items-center gap-3 my-7">
+      <div class="h-px flex-1 bg-slate-200"></div>
+      <span class="text-[10px] uppercase tracking-widest text-slate-400">
+        Talkie Talkie
+      </span>
+      <div class="h-px flex-1 bg-slate-200"></div>
+    </div>
+
+    <!-- Login -->
+    <p class="text-center text-sm text-slate-500">
+      Already part of a room?
+      <a
+        href="./login.html"
+        class="font-bold text-slate-700 hover:text-blue-600 transition-colors"
+      >
+        Log In
+      </a>
+    </p>
+
+  </main>
+
+  <!-- IMPORTANT:
+       Keep the existing Firebase signup logic.
+       Do NOT add a fake handleGoogleSignIn() function here.
+  -->
+  <script type="module" src="./signup.js"></script>
+
+</body>
+</html>

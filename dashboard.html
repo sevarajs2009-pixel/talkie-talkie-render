@@ -1,0 +1,2888 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+  <title>TALKIE TALKIE - Modern Dashboard</title>
+  
+  <!-- Load React, ReactDOM, & Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            dark: {
+              900: '#090d16',
+              800: '#111827',
+              700: '#1f2937',
+              600: '#374151',
+              border: '#2a3447'
+            }
+          }
+        },
+      },
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: contain; }
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+    .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+  </style>
+  <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TxVbnYaiHRmG5t" async></script></form>
+<script>
+// Placeholder: on successful payment, update Firebase user profile
+// Assuming user is already authenticated (firebase.auth().currentUser)
+function updatePaymentStatus() {
+  const user = window.firebaseAuth?.currentUser;
+  if (!user) { console.error('No logged-in user'); return; }
+  const db = window.firebaseDb;
+  const userDoc = window.firebaseDoc(db, 'users', user.uid);
+  window.firebaseSetDoc(userDoc, { hasPaid: true }, { merge: true })
+    .then(() => console.log('Payment status updated in Firestore'))
+    .catch(err => console.error('Failed to update payment status', err));
+}
+// Listen for Razorpay checkout success event
+window.addEventListener('payment.success', updatePaymentStatus);
+</script>
+</head>
+<body class="bg-dark-900 text-slate-100 min-h-screen">
+  <div id="root"></div>
+  <script type="module">
+  import { auth } from "./firebase.js";
+
+  import {
+    onAuthStateChanged,
+    signOut
+  } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+  import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  setDoc,
+  deleteDoc
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+import { app } from "./firebase.js";
+
+const db = getFirestore(app);
+
+window.firebaseDb = db;
+window.firebaseDoc = doc;
+window.firebaseGetDoc = getDoc;
+window.firebaseCollection = collection;
+window.firebaseGetDocs = getDocs;
+window.firebaseSetDoc = setDoc;
+window.firebaseDeleteDoc = deleteDoc;
+
+  window.firebaseAuth = auth;
+  window.firebaseOnAuthStateChanged = onAuthStateChanged;
+  window.firebaseSignOut = signOut;
+</script>
+
+  <script type="text/babel">
+    
+    function App() {
+      // Logged-in User Data State
+      const [loggedInUser, setLoggedInUser] = React.useState('');
+      const [loggedInEmail, setLoggedInEmail] = React.useState('');
+  
+      const [clientIp, setClientIp] = React.useState('Fetching IP...');
+
+      // Profile Data State - Loaded from Firebase Firestore
+      const [profileData, setProfileData] = React.useState({
+  photo: '',
+  fullName: '',
+  age: '',
+  gender: '',
+  country: ''
+});
+
+const saveProfileField = async (field, value) => {
+  try {
+    const user = window.firebaseAuth?.currentUser;
+
+    if (!user) {
+      console.error("No logged-in Firebase user.");
+      return;
+    }
+
+    await window.firebaseSetDoc(
+      window.firebaseDoc(
+        window.firebaseDb,
+        "users",
+        user.uid
+      ),
+      {
+        [field]: value
+      },
+      { merge: true }
+    );
+
+    console.log(`Profile ${field} saved successfully.`);
+  } catch (error) {
+    console.error(`Failed to save profile ${field}:`, error);
+  }
+};
+      // Verify Firebase session and load user profile data
+      React.useEffect(() => {
+        if (!window.firebaseAuth || !window.firebaseOnAuthStateChanged) {
+  console.error("Firebase Auth is not loaded.");
+  return;
+}
+
+const unsubscribe = window.firebaseOnAuthStateChanged(
+  window.firebaseAuth,
+  (user) => {
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  setLoggedInEmail(user.email || '');
+
+  console.log("Firebase user:", user.uid);
+
+  // Load profile from Firestore
+  
+  window.firebaseGetDoc(
+  window.firebaseDoc(window.firebaseDb, "users", user.uid)
+)
+    .then((profileSnapshot) => {
+      if (profileSnapshot.exists()) {
+        const profile = profileSnapshot.data();
+
+        console.log("Firestore profile:", profile);
+
+  setLoggedInUser(profile.username || '');
+setLoggedInEmail(profile.email || user.email || '');
+
+
+
+setProfileData((prev) => ({
+  ...prev,
+  fullName: profile.fullName || prev.fullName,
+  age: profile.age || prev.age,
+  gender: profile.gender || prev.gender,
+  country: profile.country || prev.country
+}));
+      } else {
+        console.log("No Firestore profile found.");
+      }
+    })
+    .catch((error) => {
+      console.error("Error loading Firestore profile:", error);
+    });
+}
+);
+
+        // Fetch user profile data from Firebase Firestore
+        
+      }, []);
+
+      const [activeTab, setActiveTab] = React.useState('home');
+      const [isNewRoomModalOpen, setIsNewRoomModalOpen] = React.useState(false);
+      
+      const [activeActionModal, setActiveActionModal] = React.useState(null); 
+      const [actionFormData, setActionFormData] = React.useState({ username: '', email: '', roomId: '', secureKey: '' });
+      
+      // Payment Modal State for extra room fee ($1)
+      const [isPaymentModalOpen, setIsPaymentModalOpen] = React.useState(false);
+      const [pendingRoomPayload, setPendingRoomPayload] = React.useState(null);
+      const [hasPremiumUpgrade, setHasPremiumUpgrade] = React.useState(false);
+
+      // Check whether this account already owns the $3 Premium Upgrade.
+      React.useEffect(() => {
+        const checkPremiumUpgrade = async () => {
+          try {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) {
+              setHasPremiumUpgrade(false);
+              return;
+            }
+
+            const entitlementSnapshot = await window.firebaseGetDoc(
+              window.firebaseDoc(
+                window.firebaseDb,
+                'users',
+                user.uid,
+                'entitlements',
+                'premium_upgrade'
+              )
+            );
+
+            if (entitlementSnapshot.exists()) {
+              const data = entitlementSnapshot.data();
+              setHasPremiumUpgrade(
+                data.active === true && Number(data.quantity || 0) > 0
+              );
+            } else {
+              setHasPremiumUpgrade(false);
+            }
+          } catch (error) {
+            console.error('Premium entitlement check failed:', error);
+            setHasPremiumUpgrade(false);
+          }
+        };
+
+        checkPremiumUpgrade();
+      }, [loggedInUser]);
+
+      // Direct Premium purchase from the PAY tab. This does NOT create a room.
+      const handlePremiumPurchase = async () => {
+        try {
+          const user = window.firebaseAuth?.currentUser;
+
+          if (!user) {
+            alert('You must be logged in.');
+            return;
+          }
+
+          if (hasPremiumUpgrade) {
+            setCopyToast('Premium is already active on this account.');
+            setTimeout(() => setCopyToast(''), 3000);
+            return;
+          }
+
+          const idToken = await user.getIdToken();
+          setCopyToast('Creating secure payment order...');
+
+          const orderResponse = await fetch('https://talkie-talkie-server.onrender.com/api/payment/create-order', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({ plan: 'premium_upgrade' })
+          });
+
+          const orderResult = await orderResponse.json();
+
+          if (!orderResponse.ok || !orderResult.success) {
+            throw new Error(orderResult.message || 'Unable to create payment order.');
+          }
+
+          if (!window.Razorpay) {
+            throw new Error('Razorpay Checkout is not loaded. Please refresh the page.');
+          }
+
+          const options = {
+            key: orderResult.keyId,
+            amount: orderResult.amount,
+            currency: orderResult.currency,
+            name: 'TalkieTalkie',
+            description: 'TalkieTalkie Premium Upgrade',
+            order_id: orderResult.orderId,
+
+            handler: async function (paymentResponse) {
+              try {
+                setCopyToast('Verifying payment...');
+
+                const verifyResponse = await fetch('https://talkie-talkie-server.onrender.com/api/payment/verify', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
+                  },
+                  body: JSON.stringify({
+                    razorpay_order_id: paymentResponse.razorpay_order_id,
+                    razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                    razorpay_signature: paymentResponse.razorpay_signature
+                  })
+                });
+
+                const verifyResult = await verifyResponse.json();
+
+                if (!verifyResponse.ok || !verifyResult.success) {
+                  throw new Error(verifyResult.message || 'Payment verification failed.');
+                }
+
+                setHasPremiumUpgrade(true);
+                setCopyToast('Premium unlocked successfully!');
+                setTimeout(() => setCopyToast(''), 4000);
+              } catch (error) {
+                console.error('Premium payment verification error:', error);
+                alert('Payment was received, but verification failed. Please contact support. Do not pay again until this is checked.');
+              }
+            },
+
+            modal: {
+              ondismiss: function () {
+                setCopyToast('');
+              }
+            }
+          };
+
+          const razorpayCheckout = new window.Razorpay(options);
+
+          razorpayCheckout.on('payment.failed', function (response) {
+            console.error('Premium payment failed:', response.error);
+            alert(response.error?.description || 'Payment failed. Premium was not unlocked.');
+            setCopyToast('');
+          });
+
+          razorpayCheckout.open();
+        } catch (error) {
+          console.error('Premium payment creation error:', error);
+          setCopyToast('');
+          alert(error.message || 'Unable to start Premium payment.');
+        }
+      };
+
+      const handlePaymentAndCreateRoom = async () => {
+  try {
+    const user = window.firebaseAuth?.currentUser;
+
+    if (!user) {
+      alert("You must be logged in.");
+      return;
+    }
+
+    if (!pendingRoomPayload) {
+      alert("No room is waiting for payment.");
+      return;
+    }
+
+    const idToken = await user.getIdToken();
+
+    setCopyToast("Creating secure payment order...");
+
+    const orderResponse = await fetch("/api/payment/create-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${idToken}`
+      },
+      body: JSON.stringify({
+        plan: "extra_room_india"
+      })
+    });
+
+    const orderResult = await orderResponse.json();
+
+    if (!orderResponse.ok || !orderResult.success) {
+      throw new Error(
+        orderResult.message || "Unable to create payment order."
+      );
+    }
+
+    const options = {
+      key: orderResult.keyId,
+      amount: orderResult.amount,
+      currency: orderResult.currency,
+      name: "TalkieTalkie",
+      description: "Extra Voice Room",
+      order_id: orderResult.orderId,
+
+      handler: async function (paymentResponse) {
+        try {
+          setCopyToast("Verifying payment...");
+
+          const verifyResponse = await fetch("/api/payment/verify", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${idToken}`
+            },
+            body: JSON.stringify({
+              razorpay_order_id: paymentResponse.razorpay_order_id,
+              razorpay_payment_id: paymentResponse.razorpay_payment_id,
+              razorpay_signature: paymentResponse.razorpay_signature
+            })
+          });
+
+          const verifyResult = await verifyResponse.json();
+
+          if (!verifyResponse.ok || !verifyResult.success) {
+            throw new Error(
+              verifyResult.message || "Payment verification failed."
+            );
+          }
+
+          await finalizeRoomCreation(pendingRoomPayload);
+
+          setPendingRoomPayload(null);
+
+          setCopyToast(
+            "Payment verified! Extra room created successfully."
+          );
+
+          setTimeout(() => setCopyToast(""), 4000);
+
+        } catch (error) {
+          console.error("Payment verification error:", error);
+
+          alert(
+            "Payment was received, but verification failed. Please contact support. Do not pay again until this is checked."
+          );
+        }
+      },
+
+      modal: {
+        ondismiss: function () {
+          setIsPaymentModalOpen(false);
+        }
+      }
+    };
+
+    if (!window.Razorpay) {
+      throw new Error(
+        "Razorpay Checkout is not loaded. Please refresh the page."
+      );
+    }
+
+    const razorpayCheckout = new window.Razorpay(options);
+
+    razorpayCheckout.on("payment.failed", function (response) {
+      console.error("Payment failed:", response.error);
+
+      alert(
+        response.error?.description ||
+        "Payment failed. Your room was not created."
+      );
+    });
+
+    setIsPaymentModalOpen(false);
+
+    razorpayCheckout.open();
+
+  } catch (error) {
+    console.error("Payment creation error:", error);
+
+    alert(
+      error.message || "Unable to start payment."
+    );
+  }
+};
+
+      // Admin Gateway State Modal & Form Data
+      const [isAdminGatewayOpen, setIsAdminGatewayOpen] = React.useState(false);
+      const [adminGatewayData, setAdminGatewayData] = React.useState({ adminName: '', roomId: '', secureKey: '' });
+      const [adminGatewayStatus, setAdminGatewayStatus] = React.useState('');
+
+      
+
+      // Fetch client IP address on load
+      React.useEffect(() => {
+        fetch('https://api.ipify.org?format=json')
+          .then(res => res.json())
+          .then(data => setClientIp(data.ip))
+          .catch(() => setClientIp('127.0.0.1 (Local)'));
+      }, []);
+
+      // Firebase Logout
+const handleLogout = async () => {
+  try {
+    await window.firebaseSignOut(window.firebaseAuth);
+
+    setLoggedInUser('');
+    setLoggedInEmail('');
+
+    window.location.href = 'login.html';
+  } catch (error) {
+    console.error("Firebase logout error:", error);
+    alert("Logout failed. Please try again.");
+  }
+};
+
+      // Guest Instant Join State
+      const [guestJoinData, setGuestJoinData] = React.useState({ roomId: '', secureKey: '' });
+      const [guestJoinStatus, setGuestJoinStatus] = React.useState('');
+
+      // Coupon Code State in Payment Portal
+      const [couponCode, setCouponCode] = React.useState('');
+      const [couponStatus, setCouponStatus] = React.useState('');
+      const [discountApplied, setDiscountApplied] = React.useState(false);
+      const [validatedCoupon, setValidatedCoupon] = React.useState(null);
+      const [isCouponPaymentLoading, setIsCouponPaymentLoading] = React.useState(false);
+
+      // Support Modal State
+      const [isSupportOpen, setIsSupportOpen] = React.useState(false);
+      const [supportForm, setSupportForm] = React.useState({ subject: '', message: '' });
+      const [supportSubmitted, setSupportSubmitted] = React.useState(false);
+
+      // Enhancements State
+      const [searchQueryRooms, setSearchQueryRooms] = React.useState('');
+      const [searchQueryHistory, setSearchQueryHistory] = React.useState('');
+      const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
+      const [notifications, setNotifications] = React.useState([
+        { id: 1, text: 'Welcome to Talkie Talkie! Your dashboard is active.', time: 'Just now', unread: true }
+      ]);
+      const [participantsModalRoom, setParticipantsModalRoom] = React.useState(null);
+      const [copyToast, setCopyToast] = React.useState('');
+
+      // Manage Modal State
+      const [managingRoom, setManagingRoom] = React.useState(null);
+      const [memberModalRoom, setMemberModalRoom] = React.useState(null);
+      const [newMemberData, setNewMemberData] = React.useState({ username: '', email: '' });
+      const [memberActionStatus, setMemberActionStatus] = React.useState('');
+
+      // Managed Rooms Directory State
+const [managedRooms, setManagedRooms] = React.useState([]);
+// Public Room Search State
+const [publicRoomSearch, setPublicRoomSearch] = React.useState('');
+const [publicRoomResults, setPublicRoomResults] = React.useState([]);
+const [publicRoomSearchLoading, setPublicRoomSearchLoading] = React.useState(false);
+const [publicRoomSearchStatus, setPublicRoomSearchStatus] = React.useState('');
+const searchPublicRooms = async () => {
+  const searchText = publicRoomSearch.trim().toLowerCase();
+
+  setPublicRoomResults([]);
+  setPublicRoomSearchStatus('');
+
+  if (!searchText) {
+    setPublicRoomSearchStatus('Enter a room name to search.');
+    return;
+  }
+
+  try {
+    setPublicRoomSearchLoading(true);
+
+    const roomsRef = window.firebaseCollection(
+      window.firebaseDb,
+      "rooms"
+    );
+
+    const roomsSnapshot = await window.firebaseGetDocs(roomsRef);
+
+    const results = roomsSnapshot.docs
+      .map(doc => ({
+        ...doc.data()
+      }))
+      .filter(room =>
+        room.isPublic === true &&
+        typeof room.name === 'string' &&
+        room.name.toLowerCase().includes(searchText)
+      );
+
+    setPublicRoomResults(results);
+
+    if (results.length === 0) {
+      setPublicRoomSearchStatus('No public rooms found.');
+    }
+  } catch (error) {
+    console.error("Public room search failed:", error);
+    setPublicRoomSearchStatus(
+      "Unable to search public rooms. Please try again."
+    );
+  } finally {
+    setPublicRoomSearchLoading(false);
+  }
+};
+
+const [roomHistory, setRoomHistory] = React.useState([]);
+
+// Load rooms after Firebase confirms the logged-in user
+React.useEffect(() => {
+  if (!window.firebaseAuth || !window.firebaseOnAuthStateChanged) {
+    console.error("Firebase Auth is not available.");
+    return;
+  }
+
+  const unsubscribe = window.firebaseOnAuthStateChanged(
+    window.firebaseAuth,
+    async (user) => {
+      if (!user) {
+        console.log("No Firebase user is logged in.");
+        return;
+      }
+
+      try {
+        console.log("Loading rooms from Firestore for:", user.uid);
+
+        const roomsRef = window.firebaseCollection(
+          window.firebaseDb,
+          "users",
+          user.uid,
+          "managedRooms"
+        );
+
+        const roomsSnapshot = await window.firebaseGetDocs(roomsRef);
+
+        const rooms = roomsSnapshot.docs.map((roomDoc) => ({
+          ...roomDoc.data()
+        }));
+
+        setManagedRooms(rooms);
+
+        console.log("Managed rooms loaded:", rooms);
+
+        const historyRef = window.firebaseCollection(
+          window.firebaseDb,
+          "users",
+          user.uid,
+          "roomHistory"
+        );
+
+        const historySnapshot = await window.firebaseGetDocs(historyRef);
+
+        const history = historySnapshot.docs.map((historyDoc) => ({
+          ...historyDoc.data()
+        }));
+
+        setRoomHistory(history);
+
+        console.log("Room history loaded:", history);
+
+      } catch (error) {
+        console.error("Error loading rooms from Firestore:", error);
+      }
+    }
+  );
+
+  return () => unsubscribe();
+}, []);
+      const [newRoomData, setNewRoomData] = React.useState({ name: '', type: 'Family', status: 'Active', secureKey: '', email: loggedInEmail });
+
+      // Update newRoomData email when loggedInEmail updates
+      React.useEffect(() => {
+        setNewRoomData(prev => ({ ...prev, email: loggedInEmail }));
+      }, [loggedInEmail]);
+
+      // Calculate current user counts for Family and Business rooms created by loggedInUser
+      const userFamilyRoomsCount = managedRooms.filter(r => loggedInUser && r.userName.toLowerCase() === loggedInUser.toLowerCase() && r.type === 'Family').length;
+      const userBusinessRoomsCount = managedRooms.filter(r => loggedInUser && r.userName.toLowerCase() === loggedInUser.toLowerCase() && r.type === 'Business').length;
+
+      // Core Room Creation processor with free allowance check
+      const processRoomCreation = async (username, email, type, roomName, roomId, secureKey) => {
+          const currentFamilyCount = managedRooms.filter(r => r.userName.toLowerCase() === username.toLowerCase() && r.type === 'Family').length;
+        const currentBizCount = managedRooms.filter(r => r.userName.toLowerCase() === username.toLowerCase() && r.type === 'Business').length;
+
+        const isExceeding =
+          !hasPremiumUpgrade &&
+          (
+            (type === 'Family' && currentFamilyCount >= 1) ||
+            (type === 'Business' && currentBizCount >= 1)
+          );
+        const normalizedRoomName = roomName.trim().toLowerCase();
+
+try {
+  const publicRoomsRef = window.firebaseCollection(
+    window.firebaseDb,
+    "rooms"
+  );
+
+  const existingRoomsSnapshot = await window.firebaseGetDocs(publicRoomsRef);
+
+  const roomNameAlreadyExists = existingRoomsSnapshot.docs.some((roomDoc) => {
+    const existingRoom = roomDoc.data();
+
+    return (
+      typeof existingRoom.name === "string" &&
+      existingRoom.name.trim().toLowerCase() === normalizedRoomName
+    );
+  });
+
+  if (roomNameAlreadyExists) {
+    console.warn("Room name already exists:", roomName);
+
+    alert(
+      `The room name "${roomName.trim()}" is already in use. Please choose another room name.`
+    );
+
+    return;
+  }
+} catch (error) {
+  console.error("Failed to check room name uniqueness:", error);
+
+  alert(
+    "Unable to verify the room name right now. Please try again."
+  );
+
+  return;
+}const roomObj = {
+  userName: username,
+  email: email.trim(),
+  name: roomName,
+  roomId: roomId.trim(),
+  secureKey: secureKey.trim(),
+  status: 'Active',
+  members: 1,
+  type: type,
+  isPublic: false,
+  participants: [username],
+  ipAddress: clientIp,
+  createdAt: new Date().toLocaleString()
+};
+
+        if (isExceeding) {
+          setActiveActionModal(null); // Closes the Create Room modal immediately so payment modal is visible
+          setPendingRoomPayload(roomObj);
+          setIsPaymentModalOpen(true);
+          return;
+        }
+
+        finalizeRoomCreation(roomObj);
+      };
+
+      
+        const finalizeRoomCreation = async (roomObj) => {
+  try {
+    const user = window.firebaseAuth?.currentUser;
+
+    if (!user) {
+      alert("You must be logged in.");
+      return;
+    }
+
+    // Save managed room to Firestore
+    await window.firebaseSetDoc(
+      window.firebaseDoc(
+        window.firebaseDb,
+        "users",
+        user.uid,
+        "managedRooms",
+        roomObj.roomId
+      ),
+      roomObj
+    );
+
+  // Publish room to the global room directory
+await window.firebaseSetDoc(
+  window.firebaseDoc(
+    window.firebaseDb,
+    "rooms",
+    roomObj.roomId
+  ),
+  {
+    roomId: roomObj.roomId,
+    name: roomObj.name,
+    type: roomObj.type,
+    status: roomObj.status,
+    isPublic: roomObj.isPublic,
+    members: roomObj.members,
+    ownerUid: user.uid,
+    userName: roomObj.userName,
+    
+    createdAt: roomObj.createdAt
+  }
+);
+
+    const historyObj = {
+      id: Date.now(),
+      userName: roomObj.userName,
+      email: roomObj.email,
+      name: roomObj.name,
+      roomId: roomObj.roomId,
+      secureKey: roomObj.secureKey,
+      status: "Active",
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        month: "short",
+        day: "numeric"
+      }),
+      ipAddress: clientIp,
+      archived: false
+    };
+
+    // Save room history to Firestore
+    await window.firebaseSetDoc(
+      window.firebaseDoc(
+        window.firebaseDb,
+        "users",
+        user.uid,
+        "roomHistory",
+        String(historyObj.id)
+      ),
+      historyObj
+    );
+
+    // Update screen
+    setManagedRooms(prev => {
+      if (
+        prev.some(
+          r => r.roomId.toLowerCase() === roomObj.roomId.toLowerCase()
+        )
+      ) {
+        return prev.map(
+          r =>
+            r.roomId.toLowerCase() === roomObj.roomId.toLowerCase()
+              ? roomObj
+              : r
+        );
+      }
+
+      return [roomObj, ...prev];
+    });
+
+    setRoomHistory(prev => [historyObj, ...prev]);
+
+    setActiveActionModal(null);
+    setIsNewRoomModalOpen(false);
+    setCopyToast("Room created successfully!");
+
+    setTimeout(() => setCopyToast(""), 3000);
+
+    console.log("Room saved to Firebase:", roomObj.roomId);
+    console.log("Room history saved to Firebase:", historyObj.id);
+
+  } catch (error) {
+    console.error("Error saving room to Firestore:", error);
+    alert("Room creation failed: " + error.message);
+  }
+};
+      const handleCreateRoomWithDetails = (e) => {
+        e.preventDefault();
+        const finalUsername = loggedInUser || actionFormData.username;
+        const finalEmail = loggedInEmail || actionFormData.email;
+        if (!finalUsername || !finalEmail || !actionFormData.roomId || !actionFormData.secureKey) return;
+
+        const exactRoomName = actionFormData.roomId.trim();
+        const generatedId = Math.random().toString(36).substring(2, 9).toUpperCase();
+        const roomId = `${activeActionModal === 'Family' ? 'FML' : 'BIZ'}-${generatedId}`;
+
+        processRoomCreation(finalUsername, finalEmail, activeActionModal, exactRoomName, roomId, actionFormData.secureKey);
+      };
+
+      const handleCreateRoom = (e) => {
+        e.preventDefault();
+        const finalUsername = loggedInUser || 'Host';
+        const finalEmail = loggedInEmail || newRoomData.email;
+        if (!newRoomData.name || !newRoomData.secureKey || !finalEmail) return;
+
+        const generatedId = Math.random().toString(36).substring(2, 9).toUpperCase();
+        const type = newRoomData.type || 'Family';
+        const exactRoomName = newRoomData.name.trim();
+        const roomId = `${type === 'Family' ? 'FML' : 'BIZ'}-${generatedId}`;
+
+        processRoomCreation(finalUsername, finalEmail, type, exactRoomName, roomId, newRoomData.secureKey);
+      };
+
+      const handleDeleteRoom = (historyId) => {
+        setRoomHistory(prev => prev.filter(item => item.id !== historyId));
+      };
+
+      const handleAdminGatewayJoin = (e) => {
+        e.preventDefault();
+        if (!adminGatewayData.adminName || !adminGatewayData.roomId || !adminGatewayData.secureKey) return;
+
+        setAdminGatewayStatus(`Verifying admin credentials for ${adminGatewayData.adminName}...`);
+        
+        setTimeout(() => {
+          const targetRoom = managedRooms.find(r => r.name.trim().toLowerCase() === adminGatewayData.roomId.trim().toLowerCase() || r.roomId.trim().toLowerCase() === adminGatewayData.roomId.trim().toLowerCase());
+
+          console.log("ADMIN GATEWAY DEBUG - entered room:", adminGatewayData.roomId);
+console.log("ADMIN GATEWAY DEBUG - entered passcode:", adminGatewayData.secureKey);
+console.log("ADMIN GATEWAY DEBUG - target room:", targetRoom);
+console.log("ADMIN GATEWAY DEBUG - stored secureKey:", targetRoom?.secureKey);
+
+          if (!targetRoom) {
+            setAdminGatewayStatus('Error: ROOM NAME not found in directory.');
+            return;
+          }
+
+          if (targetRoom.secureKey !== adminGatewayData.secureKey.trim()) {
+            setAdminGatewayStatus('Error: Invalid ROOM ID passcode.');
+            return;
+          }
+
+          setAdminGatewayStatus(`Admin verified! Launching secure voice room...`);
+          
+          setTimeout(() => {
+            window.location.href = `room.html?roomId=${encodeURIComponent(targetRoom.roomId)}&roomName=${encodeURIComponent(targetRoom.name)}&roomType=${encodeURIComponent(targetRoom.type || 'General')}&role=Admin&userName=${encodeURIComponent(adminGatewayData.adminName)}`;
+          }, 1000);
+        }, 1000);
+      };
+const handleGuestJoin = async (e) => {
+  e.preventDefault();
+
+  if (!guestJoinData.roomId || !guestJoinData.secureKey || !loggedInUser) {
+    setGuestJoinStatus("Please enter the Room ID and passcode.");
+    return;
+  }
+
+  try {
+    const user = window.firebaseAuth?.currentUser;
+
+    if (!user) {
+      setGuestJoinStatus("You must be logged in.");
+      return;
+    }
+
+    setGuestJoinStatus("Verifying room access...");
+
+    // Get Firebase authentication token
+    const idToken = await user.getIdToken();
+
+    // Send Room ID + passcode to the secure Node.js endpoint
+    const response = await fetch("/api/rooms/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${idToken}`
+      },
+      body: JSON.stringify({
+        roomId: guestJoinData.roomId.trim(),
+        secureKey: guestJoinData.secureKey.trim()
+      })
+    });
+
+    const result = await response.json();
+
+    console.log("Room verification result:", result);
+
+    if (!response.ok || !result.success) {
+      setGuestJoinStatus(
+        result.message || "Room verification failed."
+      );
+      return;
+    }
+
+    setGuestJoinStatus("Passcode verified! Joining room...");
+
+    const room = result.room;
+
+    // Build the room.html URL
+    const roomUrl =
+      `room.html?roomId=${encodeURIComponent(room.roomId)}` +
+      `&roomName=${encodeURIComponent(room.name || "Voice Room")}` +
+      `&roomType=${encodeURIComponent((room.type || "family").toLowerCase())}` +
+      `&role=Guest` +
+      `&userName=${encodeURIComponent(loggedInUser)}`;
+
+    window.location.href = roomUrl;
+
+  } catch (error) {
+    console.error("Guest join error:", error);
+
+    setGuestJoinStatus(
+      "Could not connect to the room verification server."
+    );
+  }
+};
+      
+
+      const handleApplyCoupon = async (e) => {
+  e.preventDefault();
+
+  const code = couponCode.trim();
+
+  if (!code) {
+    setCouponStatus("Please enter a coupon code.");
+    return;
+  }
+
+  try {
+    const user = window.firebaseAuth?.currentUser;
+
+    if (!user) {
+      setCouponStatus("Please log in again before using a coupon.");
+      return;
+    }
+
+    setCouponStatus("Validating coupon...");
+
+    const idToken = await user.getIdToken();
+
+    const response = await fetch(
+      "https://talkie-talkie-server.onrender.com/api/coupons/validate",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          code: code
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    console.log("Coupon validation result:", result);
+
+    if (!response.ok || !result.success) {
+      setDiscountApplied(false);
+      setCouponStatus(
+        result.message || "Invalid coupon code."
+      );
+      return;
+    }
+
+    setDiscountApplied(false);
+
+setValidatedCoupon(result.coupon);
+
+setCouponStatus(
+  "Coupon verified successfully."
+);
+
+  } catch (error) {
+    console.error("Coupon validation error:", error);
+
+    setDiscountApplied(false);
+
+    setCouponStatus(
+      "Could not connect to the coupon server. Please try again."
+    );
+  }
+};
+// ============================================================
+// COUPON PAYMENT
+// ============================================================
+
+const handleCouponPayment = async () => {
+  if (!validatedCoupon) {
+    setCouponStatus("Please validate a coupon first.");
+    return;
+  }
+
+  if (isCouponPaymentLoading) {
+    return;
+  }
+
+  try {
+    const user = window.firebaseAuth?.currentUser;
+
+    if (!user) {
+      setCouponStatus(
+        "Please log in again before making payment."
+      );
+      return;
+    }
+
+    setIsCouponPaymentLoading(true);
+    setCouponStatus("Preparing secure payment...");
+
+    const idToken = await user.getIdToken();
+
+    // --------------------------------------------------------
+    // CREATE COUPON PAYMENT ORDER
+    // --------------------------------------------------------
+
+    const response = await fetch(
+      "https://talkie-talkie-server.onrender.com/api/coupons/create-order",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`
+        },
+
+        body: JSON.stringify({
+          code: validatedCoupon.code
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    console.log(
+      "Coupon payment order result:",
+      result
+    );
+
+    if (!response.ok || !result.success) {
+      setCouponStatus(
+        result.message ||
+        "Unable to create payment order."
+      );
+
+      setIsCouponPaymentLoading(false);
+
+      return;
+    }
+
+    // --------------------------------------------------------
+    // OPEN RAZORPAY
+    // --------------------------------------------------------
+
+    const razorpayOptions = {
+    key: result.order.keyId,
+
+      amount: result.order.amount,
+
+      currency: result.order.currency,
+
+      name: "TalkieTalkie",
+
+      description:
+        result.coupon.projectName,
+
+      order_id:
+        result.order.id,
+
+      prefill: {
+        name: profileData.fullName || loggedInUser,
+        email: loggedInEmail
+      },
+
+      theme: {
+        color: "#6366f1"
+      },
+
+      handler: async function (paymentResponse) {
+
+        try {
+
+          setCouponStatus(
+            "Verifying payment..."
+          );
+
+          const verifyResponse =
+            await fetch(
+              "https://talkie-talkie-server.onrender.com/api/coupons/verify-payment",
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+
+                  "Authorization":
+                    `Bearer ${idToken}`
+                },
+
+                body: JSON.stringify({
+                  razorpay_order_id:
+                    paymentResponse.razorpay_order_id,
+
+                  razorpay_payment_id:
+                    paymentResponse.razorpay_payment_id,
+
+                  razorpay_signature:
+                    paymentResponse.razorpay_signature
+                })
+              }
+            );
+
+          const verifyResult =
+            await verifyResponse.json();
+
+          console.log(
+            "Coupon payment verification result:",
+            verifyResult
+          );
+
+          if (
+            !verifyResponse.ok ||
+            !verifyResult.success
+          ) {
+            setCouponStatus(
+              verifyResult.message ||
+              "Payment verification failed."
+            );
+
+            setIsCouponPaymentLoading(false);
+
+            return;
+          }
+
+          // --------------------------------------------------
+          // PAYMENT SUCCESS
+          // --------------------------------------------------
+
+          setCouponStatus(
+            "Payment successful! Your project payment has been confirmed."
+          );
+
+          setValidatedCoupon(null);
+          setCouponCode("");
+
+          alert(
+            "Payment successful!\n\n" +
+            "Project: " +
+            verifyResult.payment.projectName +
+            "\nAmount: " +
+            (
+              verifyResult.payment.currency === "INR"
+                ? "₹"
+                : verifyResult.payment.currency
+            ) +
+            " " +
+            verifyResult.payment.amount
+          );
+
+          setIsCouponPaymentLoading(false);
+
+        } catch (error) {
+
+          console.error(
+            "Coupon payment verification error:",
+            error
+          );
+
+          setCouponStatus(
+            "Payment was completed, but verification could not be completed. Please contact support."
+          );
+
+          setIsCouponPaymentLoading(false);
+        }
+      },
+
+      modal: {
+        ondismiss: function () {
+          console.log(
+            "Coupon payment cancelled by user."
+          );
+
+          setCouponStatus(
+            "Payment cancelled. Your coupon is still unused."
+          );
+
+          setIsCouponPaymentLoading(false);
+        }
+      }
+    };
+
+    const razorpay =
+      new window.Razorpay(
+        razorpayOptions
+      );
+
+    razorpay.open();
+
+  } catch (error) {
+
+    console.error(
+      "Coupon payment error:",
+      error
+    );
+
+    setCouponStatus(
+      "Could not start payment. Please try again."
+    );
+
+    setIsCouponPaymentLoading(false);
+  }
+};
+      
+    
+      const handleSupportSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!supportForm.subject.trim() || !supportForm.message.trim()) {
+    return;
+  }
+
+  try {
+    const user = window.firebaseAuth?.currentUser;
+
+    if (!user) {
+      alert("You must be logged in to contact support.");
+      return;
+    }
+
+    // Get the user's Firebase authentication token
+    const idToken = await user.getIdToken();
+
+    // Send the support ticket to our backend
+    const response = await fetch(
+      "https://talkie-talkie-server.onrender.com/api/support/ticket",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`
+        },
+
+        body: JSON.stringify({
+          subject: supportForm.subject.trim(),
+          message: supportForm.message.trim()
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    console.log("Support ticket result:", result);
+
+    if (!response.ok || !result.success) {
+      alert(
+        result.message ||
+        "Unable to send support ticket. Please try again."
+      );
+      return;
+    }
+
+    // Only show success after the backend confirms
+    setSupportSubmitted(true);
+
+    setTimeout(() => {
+      setSupportSubmitted(false);
+      setIsSupportOpen(false);
+      setSupportForm({
+        subject: '',
+        message: ''
+      });
+    }, 1500);
+
+  } catch (error) {
+
+    console.error(
+      "Support ticket submission error:",
+      error
+    );
+
+    alert(
+      "Could not connect to the support server. Please try again."
+    );
+  }
+};
+
+    const updateRoomVisibility = async (room, makePublic) => {
+  const user = window.firebaseAuth?.currentUser;
+
+  if (!user) {
+    alert("You must be logged in.");
+    return;
+  }
+
+  const previousRoom = { ...room };
+
+  const updatedRoom = {
+    ...room,
+    isPublic: makePublic === true
+  };
+
+  // Update the UI immediately
+  setManagedRooms(prev =>
+    prev.map(existingRoom =>
+      existingRoom.roomId === updatedRoom.roomId
+        ? updatedRoom
+        : existingRoom
+    )
+  );
+
+  try {
+    // Save this specific room to the owner's managed rooms
+    await window.firebaseSetDoc(
+      window.firebaseDoc(
+        window.firebaseDb,
+        "users",
+        user.uid,
+        "managedRooms",
+        updatedRoom.roomId
+      ),
+      updatedRoom
+    );
+
+    // Update this specific room in the public room directory
+    await window.firebaseSetDoc(
+      window.firebaseDoc(
+        window.firebaseDb,
+        "rooms",
+        updatedRoom.roomId
+      ),
+      {
+        roomId: updatedRoom.roomId,
+        name: updatedRoom.name,
+        type: updatedRoom.type,
+        status: updatedRoom.status,
+        isPublic: updatedRoom.isPublic,
+        members: updatedRoom.members,
+        ownerUid: user.uid,
+        userName: updatedRoom.userName,
+        createdAt: updatedRoom.createdAt,
+        participants: updatedRoom.participants || [],
+        membersList: updatedRoom.membersList || []
+      },
+      { merge: true }
+    );
+
+    console.log(
+      "Room visibility updated:",
+      updatedRoom.name,
+      updatedRoom.isPublic ? "PUBLIC" : "PRIVATE"
+    );
+
+  } catch (error) {
+    console.error("Failed to update room visibility:", error);
+
+    // Roll back the UI if Firebase save fails
+    setManagedRooms(prev =>
+      prev.map(existingRoom =>
+        existingRoom.roomId === previousRoom.roomId
+          ? previousRoom
+          : existingRoom
+      )
+    );
+
+    alert(
+      "Unable to save room visibility. The previous setting has been restored."
+    );
+  }
+};
+      const handleUpdateManagedRoom = async (e) => {
+    e.preventDefault();
+
+    if (!managingRoom) return;
+
+    try {
+        const user = window.firebaseAuth?.currentUser;
+
+        if (!user) {
+            alert("You must be logged in.");
+            return;
+        }
+
+        // Global room document
+        const globalRoomRef = window.firebaseDoc(
+            window.firebaseDb,
+            "rooms",
+            managingRoom.roomId
+        );
+
+        // Read the existing global room first
+        const globalRoomSnapshot =
+            await window.firebaseGetDoc(globalRoomRef);
+
+        const existingGlobalRoom = globalRoomSnapshot.exists()
+            ? globalRoomSnapshot.data()
+            : {};
+
+        const updatedRoom = {
+    ...managingRoom,
+    isPublic: managingRoom.isPublic === true,
+    participants: managingRoom.participants || [],
+    membersList: managingRoom.membersList || []
+};
+
+        // Save updated room to user's managed rooms
+        await window.firebaseSetDoc(
+            window.firebaseDoc(
+                window.firebaseDb,
+                "users",
+                user.uid,
+                "managedRooms",
+                updatedRoom.roomId
+            ),
+            updatedRoom
+        );
+
+        // Update global room used by Public Search
+          await window.firebaseSetDoc(
+    window.firebaseDoc(
+      window.firebaseDb,
+      'rooms',
+      updatedRoom.roomId
+    ),
+    {
+      roomId: updatedRoom.roomId,
+      name: updatedRoom.name,
+      type: updatedRoom.type,
+      status: updatedRoom.status,
+      isPublic: updatedRoom.isPublic === true,
+      members: updatedRoom.members,
+      ownerUid: user.uid,
+      userName: updatedRoom.userName,
+      createdAt: updatedRoom.createdAt,
+      participants: updatedRoom.participants,
+      membersList: updatedRoom.membersList
+    },
+    { merge: true }
+  );
+        // Update dashboard immediately
+        setManagedRooms(prev =>
+            prev.map(room =>
+                room.roomId === updatedRoom.roomId
+                    ? updatedRoom
+                    : room
+            )
+        );
+
+        setManagingRoom(null);
+
+        console.log(
+            "Room updated successfully:",
+            updatedRoom.roomId,
+            updatedRoom.name,
+            "Public:",
+            updatedRoom.isPublic
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Error updating room:",
+            error
+        );
+
+        alert(
+            "Unable to update the room: " +
+            error.message
+        );
+    }
+};
+
+      const openMemberManager = (room) => {
+        const members = Array.isArray(room.membersList) ? room.membersList :
+          (Array.isArray(room.participants) ? room.participants.map((name, i) => ({ username: name, email: i === 0 ? (room.email || '') : '', role: i === 0 ? 'Admin' : 'Member', addedAt: '' })) : [{ username: room.userName || loggedInUser, email: room.email || loggedInEmail, role: 'Admin', addedAt: '' }]);
+        setMemberModalRoom({ ...room, membersList: members });
+        setNewMemberData({ username: '', email: '' });
+        setMemberActionStatus('');
+      };
+
+      const saveUpdatedRoomMembers = async (updatedRoom) => {
+        const user = window.firebaseAuth?.currentUser;
+        if (!user) throw new Error('You must be logged in.');
+        await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, 'users', user.uid, 'managedRooms', updatedRoom.roomId), updatedRoom);
+        await window.firebaseSetDoc(
+  window.firebaseDoc(window.firebaseDb, 'rooms', updatedRoom.roomId),
+  {
+    roomId: updatedRoom.roomId,
+    name: updatedRoom.name,
+    type: updatedRoom.type,
+    status: updatedRoom.status,
+    isPublic: updatedRoom.isPublic === true,
+    members: updatedRoom.members,
+    ownerUid: user.uid,
+    userName: updatedRoom.userName,
+    createdAt: updatedRoom.createdAt,
+    participants: updatedRoom.participants,
+    membersList: updatedRoom.membersList
+  },
+  { merge: true }
+);
+        setManagedRooms(prev => prev.map(room => room.roomId === updatedRoom.roomId ? updatedRoom : room));
+        setMemberModalRoom(updatedRoom);
+      };
+
+      const handleAddMember = async (e) => {
+        e.preventDefault();
+        if (!memberModalRoom) return;
+        const username = newMemberData.username.trim();
+        const email = newMemberData.email.trim();
+        if (!username || !email) { setMemberActionStatus('Enter both username and email.'); return; }
+        const currentMembers = Array.isArray(memberModalRoom.membersList) ? memberModalRoom.membersList : [];
+        if (currentMembers.some(m => (m.username || '').toLowerCase() === username.toLowerCase() || (m.email || '').toLowerCase() === email.toLowerCase())) { setMemberActionStatus('This member is already added to this room.'); return; }
+        if (currentMembers.length >= 6 && !hasPremiumUpgrade) {
+          setMemberActionStatus(`This ${memberModalRoom.type} room has reached the free 6-member limit. Upgrade to add more.`);
+          return;
+        }
+        const updatedMembers = [...currentMembers, { username, email, role: 'Member', addedAt: new Date().toISOString() }];
+        const updatedRoom = { ...memberModalRoom, members: updatedMembers.length, membersList: updatedMembers, participants: updatedMembers.map(m => m.username) };
+        try { await saveUpdatedRoomMembers(updatedRoom); setNewMemberData({ username: '', email: '' }); setMemberActionStatus(`${memberModalRoom.type} member added successfully.`); }
+        catch (error) { console.error('Error adding room member:', error); setMemberActionStatus('Could not save the member: ' + error.message); }
+      };
+
+      const handleRemoveMember = async (memberUsername) => {
+        if (!memberModalRoom) return;
+        const currentMembers = Array.isArray(memberModalRoom.membersList) ? memberModalRoom.membersList : [];
+        const target = currentMembers.find(m => (m.username || '').toLowerCase() === memberUsername.toLowerCase());
+        if (!target || target.role === 'Admin') { setMemberActionStatus('The room admin cannot be removed here.'); return; }
+        const updatedMembers = currentMembers.filter(m => (m.username || '').toLowerCase() !== memberUsername.toLowerCase());
+        const updatedRoom = { ...memberModalRoom, members: updatedMembers.length, membersList: updatedMembers, participants: updatedMembers.map(m => m.username) };
+        try { await saveUpdatedRoomMembers(updatedRoom); setMemberActionStatus('Member removed successfully.'); }
+        catch (error) { console.error('Error removing room member:', error); setMemberActionStatus('Could not remove the member: ' + error.message); }
+      };
+
+      const filteredManagedRooms = managedRooms.filter(r => 
+        r.name.toLowerCase().includes(searchQueryRooms.toLowerCase()) || 
+        r.roomId.toLowerCase().includes(searchQueryRooms.toLowerCase())
+      );
+
+      const filteredRoomHistory = roomHistory.filter(h =>
+        (h.name && h.name.toLowerCase().includes(searchQueryHistory.toLowerCase())) ||
+        (h.userName && h.userName.toLowerCase().includes(searchQueryHistory.toLowerCase())) ||
+        (h.email && h.email.toLowerCase().includes(searchQueryHistory.toLowerCase()))
+      );
+
+      const emailQueryMatch = searchQueryHistory.trim().toLowerCase();
+      const isEmailQuery = emailQueryMatch.includes('@');
+      const matchingRoomsCountByEmail = isEmailQuery 
+        ? roomHistory.filter(h => h.email && h.email.toLowerCase() === emailQueryMatch).length 
+        : 0;
+
+      return (
+        <div className="min-h-screen bg-dark-900 flex flex-col justify-between selection:bg-brand-500 selection:text-white relative">
+          
+          {copyToast && (
+            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-brand-600 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xl border border-brand-400/30 animate-bounce">
+              {copyToast}
+            </div>
+          )}
+
+          <header className="fixed top-0 w-full z-50 bg-dark-800/85 backdrop-blur-md border-b border-dark-border pt-safe">
+            <div className="h-16 px-5 flex items-center justify-between max-w-lg mx-auto">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/25">
+                  <span className="material-symbols-outlined text-white text-xl">settings_input_antenna</span>
+                </div>
+                <span className="font-extrabold tracking-tight text-lg text-white">TALKIE TALKIE</span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={handleLogout}
+                  className="h-9 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 flex items-center gap-1.5 text-rose-400 text-xs font-semibold transition-colors cursor-pointer"
+                  title="Logout"
+                >
+                  <span className="material-symbols-outlined text-base">logout</span>
+                  <span>Logout</span>
+                </button>
+
+                <button 
+                  onClick={() => setIsSupportOpen(true)}
+                  className="w-9 h-9 rounded-xl bg-dark-700/60 hover:bg-dark-700 border border-dark-border flex items-center justify-center text-slate-300 transition-colors cursor-pointer"
+                  title="General Support"
+                >
+                  <span className="material-symbols-outlined text-lg">support_agent</span>
+                </button>
+
+                <div className="relative">
+                  <button 
+                    onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                    className="w-9 h-9 rounded-xl bg-dark-700/60 hover:bg-dark-700 border border-dark-border flex items-center justify-center text-slate-300 relative transition-colors cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-lg">notifications</span>
+                    {notifications.some(n => n.unread) && (
+                      <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                    )}
+                  </button>
+
+                  {isNotificationsOpen && (
+                    <div className="absolute right-0 mt-2 w-72 bg-dark-800 border border-dark-border rounded-2xl shadow-2xl p-3 z-50 flex flex-col gap-2">
+                      <div className="flex justify-between items-center pb-2 border-b border-dark-border">
+                        <span className="text-xs font-bold text-white uppercase tracking-wider">Notifications</span>
+                        <button onClick={() => setNotifications(notifications.map(n => ({...n, unread: false})))} className="text-[10px] text-brand-400 hover:underline cursor-pointer">Mark all read</button>
+                      </div>
+                      <div className="flex flex-col gap-1.5 max-h-60 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <span className="text-xs text-slate-500 text-center py-3">No notifications</span>
+                        ) : (
+                          notifications.map(n => (
+                            <div key={n.id} className={`p-2.5 rounded-xl border ${n.unread ? 'bg-brand-500/10 border-brand-500/20 text-white' : 'bg-dark-900/40 border-dark-border text-slate-300'} flex flex-col gap-1`}>
+                              <p className="text-xs">{n.text}</p>
+                              <span className="text-[10px] text-slate-500">{n.time}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="relative w-full pt-20 pb-28 max-w-lg mx-auto px-4 flex-1">
+            <div className="flex flex-col gap-6">
+              
+              {activeTab === 'home' && (
+                <>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-bold tracking-tight text-white">Room Dashboard</h2>
+                      <button onClick={() => setIsNewRoomModalOpen(true)} className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-600/20 transition-all active:scale-95 cursor-pointer">
+                        <span className="material-symbols-outlined text-[16px]">add</span> New Room
+                      </button>
+                    </div>
+                    <div className="bg-dark-800 border border-dark-border rounded-3xl p-5 flex flex-col gap-4 shadow-lg">
+    
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-2.5">
+      <div className="w-8 h-8 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
+        <span className="material-symbols-outlined text-base">public</span>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-bold text-white">Public Room Search</h3>
+        <p className="text-[10px] text-slate-500">
+          Search public rooms by room name
+        </p>
+      </div>
+    </div>
+
+    <span className="text-[10px] font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-400 uppercase">
+      PUBLIC
+    </span>
+  </div>
+
+  <div className="flex gap-2">
+    <input
+      type="text"
+      value={publicRoomSearch}
+      onChange={(e) => setPublicRoomSearch(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          searchPublicRooms();
+        }
+      }}
+      placeholder="Enter room name..."
+      className="flex-1 px-3.5 py-2.5 rounded-xl border border-dark-border bg-dark-900 text-white text-xs outline-none focus:border-brand-500"
+    />
+
+    <button
+      type="button"
+      onClick={searchPublicRooms}
+      disabled={publicRoomSearchLoading}
+      className="px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-white text-xs font-bold transition-all disabled:opacity-50"
+    >
+      {publicRoomSearchLoading ? 'Searching...' : 'Search'}
+    </button>
+  </div>
+
+  {publicRoomSearchStatus && (
+    <p className="text-[11px] text-slate-400">
+      {publicRoomSearchStatus}
+    </p>
+  )}
+
+  {publicRoomResults.length > 0 && (
+    <div className="flex flex-col gap-2">
+      {publicRoomResults.map((room) => (
+        <div
+          key={room.roomId}
+          className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-dark-900 border border-dark-border"
+        >
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-white truncate">
+              {room.name}
+            </p>
+
+            <p className="text-[10px] text-slate-500">
+              {room.type} · {room.members || 0}/6 members
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setGuestJoinData((prev) => ({
+                ...prev,
+                roomId: room.roomId
+              }));
+
+              setTimeout(() => {
+                const guestPortal = document.getElementById("guest-access-portal");
+
+                if (guestPortal) {
+                  guestPortal.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                  });
+                }
+              }, 50);
+            }}
+            className="shrink-0 px-3 py-2 rounded-xl bg-brand-500 hover:bg-brand-400 text-white text-[10px] font-bold transition-all"
+          >
+            Join
+          </button>
+        </div>
+      ))}
+    </div>
+  )}
+
+</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button 
+                        onClick={() => { 
+                          setActiveActionModal('Family'); 
+                          setActionFormData({ username: loggedInUser, email: loggedInEmail, roomId: '', secureKey: '' }); 
+                        }}
+                        className="bg-dark-800 hover:bg-dark-700 border border-dark-border hover:border-brand-500/50 rounded-2xl p-4 flex flex-col gap-3 text-left transition-all active:scale-95 group cursor-pointer"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                          <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>family_home</span>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-white">Family Room</h4>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {userFamilyRoomsCount >= 1 ? '1 Free Used ($1 extra)' : '1 Free Available'}
+                          </p>
+                        </div>
+                      </button>
+
+                      <button 
+                        onClick={() => { 
+                          setActiveActionModal('Business'); 
+                          setActionFormData({ username: loggedInUser, email: loggedInEmail, roomId: '', secureKey: '' }); 
+                        }}
+                        className="bg-dark-800 hover:bg-dark-700 border border-dark-border hover:border-purple-500/50 rounded-2xl p-4 flex flex-col gap-3 text-left transition-all active:scale-95 group cursor-pointer"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                          <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>domain</span>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-white">Business Room</h4>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {userBusinessRoomsCount >= 1 ? '1 Free Used ($1 extra)' : '1 Free Available'}
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 px-1 text-slate-400">
+                      <span className="material-symbols-outlined text-brand-400 text-sm">shield_lock</span>
+                      <p className="text-[11px]">Family and Business rooms have separate member lists. Free capacity is 6 members per room.</p>
+                    </div>
+                  </div>
+                  
+  
+                  <div
+  id="guest-access-portal"
+  className="bg-dark-800 border border-dark-border rounded-3xl p-5 flex flex-col gap-4 shadow-lg"
+>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+  <div className="w-8 h-8 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
+    <span className="material-symbols-outlined text-base">login</span>
+  </div>
+  <h3 className="text-sm font-bold text-white">Guest Access Portal</h3>
+</div>
+
+
+                      <span className="text-[10px] font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-slate-700/50 text-slate-300 uppercase">JOINER</span>
+                    </div>
+
+                    <form onSubmit={handleGuestJoin} className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Your Name (Guest / User)</label>
+                        <input 
+                          type="text" 
+                          value={loggedInUser} 
+                          readOnly
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-dark-border bg-dark-900/50 text-slate-300 text-xs outline-none cursor-not-allowed select-none" 
+                          required 
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ROOM NAME / ID</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. BraveNode507's Room" 
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-dark-border bg-dark-900 text-white text-xs outline-none focus:border-brand-500" 
+                            value={guestJoinData.roomId} 
+                            onChange={e => setGuestJoinData({...guestJoinData, roomId: e.target.value})} 
+                            required 
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PASSCODE</label>
+                          <input 
+                            type="password" 
+                            placeholder="Passcode" 
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-dark-border bg-dark-900 text-white text-xs outline-none focus:border-brand-500" 
+                            value={guestJoinData.secureKey} 
+                            onChange={e => setGuestJoinData({...guestJoinData, secureKey: e.target.value})} 
+                            required 
+                          />
+                        </div>
+                      </div>
+
+                      {guestJoinStatus && (
+                        <div className="p-2 bg-brand-500/10 border border-brand-500/30 rounded-xl text-center text-[11px] text-brand-300 font-medium animate-pulse">
+                          {guestJoinStatus}
+                        </div>
+                      )}
+
+                      <button type="submit" className="w-full bg-brand-600 hover:bg-brand-500 text-white py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm">meeting_room</span> Join Voice Room Now
+                      </button>
+                    </form>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2.5">
+                      <h3 className="text-xs font-bold tracking-wider text-slate-400 uppercase">Available Rooms Directory</h3>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-500 text-base">search</span>
+                        <input 
+                          type="text" 
+                          placeholder="Filter rooms by name or ID..." 
+                          value={searchQueryRooms}
+                          onChange={e => setSearchQueryRooms(e.target.value)}
+                          className="w-full bg-dark-800 border border-dark-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none focus:border-brand-500 transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      {filteredManagedRooms.length === 0 ? (
+                        <div className="bg-dark-800/50 border border-dashed border-dark-border rounded-2xl p-8 text-center flex flex-col items-center gap-2">
+                          <span className="material-symbols-outlined text-slate-500 text-3xl">folder_open</span>
+                          <span className="text-xs font-semibold text-slate-300">No Rooms Available</span>
+                          <span className="text-[11px] text-slate-500">Create a new room above to get started.</span>
+                        </div>
+                      ) : (
+                        filteredManagedRooms.map((room, index) => (
+                          <div key={index} className="bg-dark-800 border border-dark-border rounded-2xl p-4 flex flex-col gap-4 shadow-sm">
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
+                                  <span className="material-symbols-outlined">shield_person</span>
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-bold text-white">{room.name}</h4>
+                                  <span className="text-xs text-slate-400 font-mono">Type: {room.type || 'General'}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1 text-[11px] text-slate-400 bg-dark-900/50 p-2.5 rounded-xl border border-dark-border">
+                              <div className="flex justify-between"><span>Host Creator:</span> <strong className="text-slate-300">{room.userName}</strong></div>
+                              <div className="flex justify-between"><span>IP Address:</span> <strong className="text-slate-300 font-mono">{room.ipAddress || clientIp}</strong></div>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+  <div className="flex items-center justify-between">
+    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+      Room Visibility
+    </span>
+
+    <span
+      className={`text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-full ${
+        room.isPublic === true
+          ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20'
+          : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+      }`}
+    >
+      {room.isPublic === true ? 'PUBLIC' : 'PRIVATE'}
+    </span>
+  </div>
+
+  <div className="flex items-center gap-1 p-1 rounded-xl bg-dark-900 border border-dark-border">
+    <button
+      type="button"
+      onClick={() => updateRoomVisibility(room, false)}
+      className={`flex-1 px-3 py-2 rounded-lg text-[10px] font-bold transition ${
+        room.isPublic !== true
+          ? 'bg-slate-700 text-white shadow'
+          : 'text-slate-400 hover:text-white'
+      }`}
+    >
+      Private
+    </button>
+
+    <button
+      type="button"
+      onClick={() => updateRoomVisibility(room, true)}
+      className={`flex-1 px-3 py-2 rounded-lg text-[10px] font-bold transition ${
+        room.isPublic === true
+          ? 'bg-brand-500 text-white shadow'
+          : 'text-slate-400 hover:text-white'
+      }`}
+    >
+      Public
+    </button>
+  </div>
+</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button onClick={() => setManagingRoom({...room})} className="bg-dark-700 hover:bg-dark-600 text-slate-200 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                                <span className="material-symbols-outlined text-[16px]">settings</span> Manage
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setAdminGatewayData({ adminName: loggedInUser || room.userName || '', roomId: room.name, secureKey: '' });
+                                  setIsAdminGatewayOpen(true);
+                                }} 
+                                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">admin_panel_settings</span> Admin Gateway
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'rooms' && (
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight text-white">Rooms Overview &amp; History</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">Review active channels and historical logs linked to your credentials.</p>
+                  </div>
+
+                  <div className="flex flex-col gap-2.5">
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-500 text-base">search</span>
+                      <input 
+                        type="text" 
+                        placeholder="Search by email, username, or room name..." 
+                        value={searchQueryHistory}
+                        onChange={e => setSearchQueryHistory(e.target.value)}
+                        className="w-full bg-dark-800 border border-dark-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none focus:border-brand-500 transition-colors"
+                      />
+                    </div>
+                    {isEmailQuery && (
+                      <div className="bg-brand-500/10 border border-brand-500/30 rounded-xl px-3.5 py-2 text-xs text-brand-300 font-medium flex items-center justify-between">
+                        <span>Email search match: <strong>{searchQueryHistory}</strong></span>
+                        <span className="bg-brand-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
+                          {matchingRoomsCountByEmail} voice rooms found
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    {filteredRoomHistory.length === 0 ? (
+                      <div className="bg-dark-800/50 border border-dashed border-dark-border rounded-2xl p-8 text-center flex flex-col items-center gap-2">
+                        <span className="material-symbols-outlined text-slate-500 text-3xl">history</span>
+                        <span className="text-xs font-semibold text-slate-300">No Room History Found</span>
+                        <span className="text-[11px] text-slate-500">Your past room sessions will appear here.</span>
+                      </div>
+                    ) : (
+                      filteredRoomHistory.map((item) => (
+                        <div key={item.id} className="bg-dark-800 border border-dark-border rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                <span className="material-symbols-outlined">history_toggle_off</span>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-bold text-white">{item.name}</h4>
+                                <span className="text-xs text-slate-400">Created by: {item.userName || 'Host'} {item.email ? `(${item.email})` : ''}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase">
+                                {item.status}
+                              </span>
+                              <button 
+                                onClick={() => handleDeleteRoom(item.id)}
+                                className="w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 flex items-center justify-center transition-colors cursor-pointer"
+                                title="Delete Voice Room History"
+                              >
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col gap-1 text-[11px] text-slate-400 bg-dark-900/50 p-2.5 rounded-xl border border-dark-border">
+                            <div className="flex justify-between"><span>IP Address:</span> <strong className="text-slate-300 font-mono">{item.ipAddress || clientIp}</strong></div>
+                            <div className="flex justify-between"><span>Time:</span> <strong className="text-slate-300">{item.time}</strong></div>
+                          </div>
+
+                          <div className="flex justify-end items-center text-[11px] text-slate-400 pt-1">
+                            <button 
+                              onClick={() => {
+                                setAdminGatewayData({ adminName: loggedInUser || item.userName || '', roomId: item.name, secureKey: '' });
+                                setIsAdminGatewayOpen(true);
+                              }} 
+                              className="text-amber-400 hover:underline flex items-center gap-1 cursor-pointer font-semibold"
+                            >
+                              <span className="material-symbols-outlined text-xs">admin_panel_settings</span> Admin Gateway
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'payments' && (
+                <div className="flex flex-col gap-5 py-2">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Billing &amp; Credits</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">Buy Premium access and manage your promotional coupon.</p>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-brand-600/20 via-dark-800 to-dark-800 border border-brand-500/40 rounded-3xl p-5 flex flex-col gap-4 shadow-lg shadow-brand-500/5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400">
+                          <span className="material-symbols-outlined text-xl">workspace_premium</span>
+                        </div>
+                        <div>
+                          <h3 className="text-base font-extrabold text-white">TalkieTalkie Premium</h3>
+                          <p className="text-[11px] text-slate-400 mt-0.5">One-time upgrade • $3</p>
+                        </div>
+                      </div>
+                      {hasPremiumUpgrade && (
+                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Active</span>
+                      )}
+                    </div>
+
+                    <div className="h-px bg-dark-border" />
+
+                    <div className="grid grid-cols-1 gap-2">
+                      <div className="flex items-center gap-2 text-xs text-slate-300">
+                        <span className="material-symbols-outlined text-emerald-400 text-base">check_circle</span>
+                        Extra Family rooms
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-300">
+                        <span className="material-symbols-outlined text-emerald-400 text-base">check_circle</span>
+                        Extra Business rooms
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-300">
+                        <span className="material-symbols-outlined text-emerald-400 text-base">check_circle</span>
+                        More than 6 members per room
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handlePremiumPurchase}
+                      disabled={hasPremiumUpgrade}
+                      className={`w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${hasPremiumUpgrade ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 cursor-not-allowed' : 'bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/25 cursor-pointer'}`}
+                    >
+                      <span className="material-symbols-outlined text-base">{hasPremiumUpgrade ? 'verified' : 'lock_open'}</span>
+                      {hasPremiumUpgrade ? 'Premium Active' : 'Get Premium — $3'}
+                    </button>
+
+                    <p className="text-[10px] text-slate-500 text-center">Secure checkout powered by Razorpay.</p>
+                  </div>
+
+                  <div className="bg-dark-800 border border-dark-border rounded-3xl p-5 flex flex-col gap-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="text-sm font-bold text-white">Promo / Coupon</h4>
+                        <span className="text-xs text-slate-400">Apply a promotional code to your account.</span>
+                      </div>
+                    </div>
+
+                    <div className="h-px bg-dark-border" />
+
+                    <form onSubmit={handleApplyCoupon} className="flex flex-col gap-2">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Promo / Coupon Code</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="e.g. TALKIE20"
+                          value={couponCode}
+                          onChange={e => setCouponCode(e.target.value)}
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-dark-border bg-dark-900 text-white text-xs outline-none focus:border-brand-500 uppercase"
+                        />
+                        <button type="submit" className="bg-dark-700 hover:bg-dark-600 text-slate-200 px-4 py-2.5 rounded-xl font-semibold text-xs cursor-pointer transition-colors">
+                          Apply
+                        </button>
+                      </div>
+                      {couponStatus && (
+                        <p className={`text-[11px] mt-1 font-medium ${discountApplied ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {couponStatus}
+                        </p>
+                      )}
+                      {validatedCoupon && (
+  <div className="mt-3 bg-dark-900 border border-brand-500/30 rounded-2xl p-4 flex flex-col gap-3">
+
+    <div className="flex items-center gap-2">
+      <span className="material-symbols-outlined text-brand-400 text-lg">
+        verified
+      </span>
+
+      <span className="text-xs font-bold text-emerald-400">
+        Coupon Verified
+      </span>
+    </div>
+
+    <div className="h-px bg-dark-border" />
+
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+        Project
+      </span>
+
+      <span className="text-sm font-bold text-white">
+        {validatedCoupon.projectName}
+      </span>
+    </div>
+
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+        Description
+      </span>
+
+      <p className="text-xs text-slate-300 leading-relaxed">
+        {validatedCoupon.projectDescription}
+      </p>
+    </div>
+
+    <div className="flex items-center justify-between bg-dark-800 border border-dark-border rounded-xl px-3 py-3">
+      <span className="text-xs font-bold text-slate-400">
+        Payment Amount
+      </span>
+
+      <span className="text-base font-extrabold text-brand-400">
+        {validatedCoupon.currency === 'INR' ? '₹' : validatedCoupon.currency}{' '}
+        {validatedCoupon.amount.toLocaleString()}
+      </span>
+    </div>
+
+    <button
+      type="button"
+        onClick={handleCouponPayment}
+        disabled={isCouponPaymentLoading}
+      className="w-full bg-brand-600 hover:bg-brand-500 disabled:bg-dark-700 disabled:text-slate-500 text-white py-3 rounded-xl font-bold text-xs shadow-lg shadow-brand-600/25 transition-all cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2"
+    >
+      <span className="material-symbols-outlined text-base">
+        {isCouponPaymentLoading ? 'progress_activity' : 'payments'}
+      </span>
+
+      {isCouponPaymentLoading
+        ? 'Processing Payment...'
+        : `Pay ${validatedCoupon.currency === 'INR' ? '₹' : validatedCoupon.currency} ${validatedCoupon.amount.toLocaleString()}`
+      }
+    </button>
+
+  </div>
+)}
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'profile' && (
+                <div className="flex flex-col gap-5 py-2 max-w-sm mx-auto w-full">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">User Profile &amp; Stats</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">Your personal credentials, device IP address, and room counts.</p>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-4 bg-dark-800 border border-dark-border rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                    
+                    <div className="relative group cursor-pointer">
+                      <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white text-3xl font-extrabold shadow-lg shadow-brand-500/25 overflow-hidden">
+                        {profileData.photo ? (
+                          <img src={profileData.photo} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{(loggedInUser || 'U').charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white rounded-2xl cursor-pointer">
+                        <span className="material-symbols-outlined text-base">add_a_photo</span>
+                        <span className="text-[10px] font-bold mt-0.5">Change Photo</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={e => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setProfileData(prev => ({ ...prev, photo: reader.result }));
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }} 
+                        />
+                      </label>
+                    </div>
+
+                    <div className="text-center flex flex-col gap-1 w-full">
+                      <div className="flex flex-col gap-1 w-full">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left">User Name</label>
+                        <input 
+                          type="text" 
+                          value={loggedInUser} 
+                          readOnly
+                          className="w-full bg-dark-900/50 border border-dark-border rounded-xl px-3 py-2 text-slate-300 text-xs font-semibold outline-none cursor-not-allowed select-none text-center"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1 w-full mt-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left">User Email</label>
+                        <input 
+                          type="email" 
+                          value={loggedInEmail} 
+                          readOnly
+                          className="w-full bg-dark-900/50 border border-dark-border rounded-xl px-3 py-2 text-slate-300 text-xs font-semibold outline-none cursor-not-allowed select-none text-center"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="w-full h-px bg-dark-border my-1" />
+                    <div className="flex flex-col gap-1 bg-dark-900/60 border border-dark-border rounded-2xl p-2.5 mb-2">
+  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+    Full Name
+  </label>
+
+  <input
+    type="text"
+    value={profileData.fullName || ''}
+    readOnly
+    className="bg-transparent text-slate-300 text-xs font-semibold outline-none w-full cursor-not-allowed select-none"
+  />
+</div>
+
+    <div className="w-full grid grid-cols-3 gap-2">
+
+  {/* AGE */}
+  <div className="flex flex-col gap-1 bg-dark-900/60 border border-dark-border rounded-2xl p-2.5">
+    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+      Age
+    </label>
+
+    <input
+      type="text"
+      inputMode="numeric"
+      value={profileData.age ?? ""}
+      onChange={(e) => {
+        const value = e.target.value.replace(/\D/g, "");
+
+        setProfileData(prev => ({
+          ...prev,
+          age: value
+        }));
+      }}
+      onBlur={() => {
+        saveProfileField("age", profileData.age);
+      }}
+      className="bg-transparent text-slate-300 text-xs font-semibold outline-none w-full text-center"
+      placeholder="Age"
+    />
+  </div>
+
+  {/* GENDER */}
+  <div className="flex flex-col gap-1 bg-dark-900/60 border border-dark-border rounded-2xl p-2.5">
+    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+      Gender
+    </label>
+
+    <input
+      type="text"
+      value={profileData.gender ?? ""}
+      onChange={(e) => {
+        setProfileData(prev => ({
+          ...prev,
+          gender: e.target.value
+        }));
+      }}
+      onBlur={() => {
+        saveProfileField("gender", profileData.gender);
+      }}
+      className="bg-transparent text-slate-300 text-xs font-semibold outline-none w-full text-center truncate"
+      placeholder="Gender"
+    />
+  </div>
+
+  {/* COUNTRY */}
+  <div className="flex flex-col gap-1 bg-dark-900/60 border border-dark-border rounded-2xl p-2.5">
+    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+      Country
+    </label>
+
+    <input
+      type="text"
+      value={profileData.country ?? ""}
+      onChange={(e) => {
+        setProfileData(prev => ({
+          ...prev,
+          country: e.target.value
+        }));
+      }}
+      onBlur={() => {
+        saveProfileField("country", profileData.country);
+      }}
+      className="bg-transparent text-slate-300 text-xs font-semibold outline-none w-full text-center truncate"
+      placeholder="Country"
+    />
+  </div>
+
+</div>
+                      <div className="w-full grid grid-cols-2 gap-3">
+                      <div className="bg-brand-500/10 border border-brand-500/20 rounded-2xl p-3 flex flex-col items-center text-center">
+                        <span className="material-symbols-outlined text-brand-400 text-lg mb-1">family_home</span>
+                        <span className="text-xl font-extrabold text-white">
+                          {userFamilyRoomsCount}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Family Rooms</span>
+                      </div>
+
+                      <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-3 flex flex-col items-center text-center">
+                        <span className="material-symbols-outlined text-purple-400 text-lg mb-1">domain</span>
+                        <span className="text-xl font-extrabold text-white">
+                          {userBusinessRoomsCount}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Business Rooms</span>
+                      </div>
+                    </div>
+
+                    <div className="w-full bg-dark-900/60 border border-dark-border rounded-2xl p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-xs text-brand-400">lan</span>
+                        <span className="text-[11px] font-semibold text-slate-400">IP Address</span>
+                      </div>
+                      <span className="text-xs font-mono font-bold text-slate-200">{clientIp}</span>
+                    </div>
+
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer mt-2"
+                    >
+                      <span className="material-symbols-outlined text-base">logout</span> Logout Account
+                    </button>
+
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </main>
+
+          {isPaymentModalOpen && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-dark-800 border border-brand-500/40 rounded-3xl p-6 w-full max-w-sm flex flex-col gap-4 shadow-2xl">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-brand-400">payments</span>
+                    Unlock Extra Voice Room
+                  </h3>
+                  <button onClick={() => setIsPaymentModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                    <span className="material-symbols-outlined text-xl">close</span>
+                  </button>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+  You have already used your free room allowance for this category. A one-time fee of{' '}
+  <strong className="text-brand-400">₹80</strong> is required to create an additional room.
+</p>
+                <div className="bg-dark-900 border border-dark-border rounded-2xl p-3 flex flex-col gap-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Type</span>
+                  <span className="text-xs font-bold text-white">{pendingRoomPayload?.type} Room ({pendingRoomPayload?.name})</span>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button 
+                    onClick={() => setIsPaymentModalOpen(false)} 
+                    className="flex-1 bg-dark-700 hover:bg-dark-600 text-slate-200 py-3 rounded-xl font-semibold text-xs cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    
+                    onClick={handlePaymentAndCreateRoom}
+                    className="flex-1 bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-bold text-xs shadow-lg shadow-brand-600/25 cursor-pointer transition-all"
+                  >
+                    Pay ₹80  &amp; Create
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isAdminGatewayOpen && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-dark-800 border border-amber-500/30 rounded-3xl p-6 w-full max-w-sm flex flex-col gap-4 shadow-2xl">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-amber-400">admin_panel_settings</span>
+                    Admin Gateway Login
+                  </h3>
+                  <button onClick={() => setIsAdminGatewayOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                    <span className="material-symbols-outlined text-xl">close</span>
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-slate-400">Enter your administrative credentials to securely join your voice room.</p>
+
+                <form onSubmit={handleAdminGatewayJoin} className="flex flex-col gap-3.5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">ADMIN</label>
+                    <input 
+                      type="text" 
+                      value={adminGatewayData.adminName}
+                      readOnly
+                      className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900/50 text-slate-300 text-sm outline-none cursor-not-allowed select-none" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">ROOM NAME</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. BraveNode507's Room" 
+                      className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900 text-white text-sm outline-none focus:border-amber-500" 
+                      value={adminGatewayData.roomId} 
+                      onChange={e => setAdminGatewayData({...adminGatewayData, roomId: e.target.value})} 
+                      required 
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">ROOM ID / PASSCODE</label>
+                    <input 
+                      type="password" 
+                      placeholder="Enter secure passcode" 
+                      className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900 text-white text-sm outline-none focus:border-amber-500" 
+                      value={adminGatewayData.secureKey} 
+                      onChange={e => setAdminGatewayData({...adminGatewayData, secureKey: e.target.value})} 
+                      required 
+                    />
+                  </div>
+
+                  {adminGatewayStatus && (
+                    <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-center text-[11px] text-amber-300 font-medium animate-pulse">
+                      {adminGatewayStatus}
+                    </div>
+                  )}
+
+                  <button type="submit" className="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 rounded-xl font-bold text-xs mt-2 shadow-lg shadow-amber-600/25 transition-all cursor-pointer flex items-center justify-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm">vpn_key</span> Verify &amp; Join Voice Room
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {activeActionModal && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-dark-800 border border-dark-border rounded-3xl p-6 w-full max-w-sm flex flex-col gap-4 shadow-2xl">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-brand-400">
+                      {activeActionModal === 'Family' ? 'family_home' : 'domain'}
+                    </span>
+                    Create {activeActionModal} Room
+                  </h3>
+                  <button onClick={() => setActiveActionModal(null)} className="text-slate-400 hover:text-white cursor-pointer">
+                    <span className="material-symbols-outlined text-xl">close</span>
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateRoomWithDetails} className="flex flex-col gap-3.5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">User Name</label>
+                    <input 
+                      type="text" 
+                      value={loggedInUser} 
+                      readOnly
+                      className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900/50 text-slate-300 text-sm outline-none cursor-not-allowed select-none" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Email Address</label>
+                    <input 
+                      type="email" 
+                      value={loggedInEmail} 
+                      readOnly
+                      className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900/50 text-slate-300 text-sm outline-none cursor-not-allowed select-none" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">ROOM NAME</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. BraveNode507's Business Room" 
+                      className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900 text-white text-sm outline-none focus:border-brand-500" 
+                      value={actionFormData.roomId} 
+                      onChange={e => setActionFormData({...actionFormData, roomId: e.target.value})} 
+                      required 
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">PASSCODE</label>
+                    <input 
+                      type="password" 
+                      placeholder="Enter secure passcode" 
+                      className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900 text-white text-sm outline-none focus:border-brand-500" 
+                      value={actionFormData.secureKey} 
+                      onChange={e => setActionFormData({...actionFormData, secureKey: e.target.value})} 
+                      required 
+                    />
+                  </div>
+
+                  <button type="submit" className="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-bold text-xs mt-2 shadow-lg shadow-brand-600/25 transition-all cursor-pointer">
+                    Save &amp; Create Room
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {isSupportOpen && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-dark-800 border border-dark-border rounded-3xl p-6 w-full max-w-sm flex flex-col gap-4 shadow-2xl">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-brand-400">support_agent</span>
+                    General Support Desk
+                  </h3>
+                  <button onClick={() => setIsSupportOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                    <span className="material-symbols-outlined text-xl">close</span>
+                  </button>
+                </div>
+
+                {supportSubmitted ? (
+                  <div className="py-8 text-center flex flex-col items-center gap-2">
+                    <span className="material-symbols-outlined text-emerald-400 text-4xl animate-bounce">check_circle</span>
+                    <h4 className="text-sm font-bold text-white">Support Ticket Sent!</h4>
+                    <p className="text-xs text-slate-400">Our customer team will get back to you shortly.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSupportSubmit} className="flex flex-col gap-3.5">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Subject</label>
+                      <input 
+                        type="text" 
+                        placeholder="Brief summary of your issue" 
+                        value={supportForm.subject}
+                        onChange={e => setSupportForm({...supportForm, subject: e.target.value})}
+                        className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900 text-white text-sm outline-none focus:border-brand-500"
+                        required 
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Message</label>
+                      <textarea 
+                        rows="3" 
+                        placeholder="Describe how we can help you..." 
+                        value={supportForm.message}
+                        onChange={e => setSupportForm({...supportForm, message: e.target.value})}
+                        className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900 text-white text-sm outline-none focus:border-brand-500 resize-none"
+                        required 
+                      />
+                    </div>
+
+                    <button type="submit" className="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-bold text-xs mt-2 cursor-pointer shadow-lg">
+                      Submit Support Ticket
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+          {memberModalRoom && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-dark-800 border border-brand-500/40 rounded-3xl p-6 w-full max-w-sm flex flex-col gap-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center"><div><h3 className="text-base font-bold text-white flex items-center gap-2"><span className="material-symbols-outlined text-brand-400">{memberModalRoom.type === 'Family' ? 'family_home' : 'domain'}</span>{memberModalRoom.type} Members</h3><p className="text-[10px] text-slate-400 mt-1">{memberModalRoom.name}</p></div><button onClick={() => setMemberModalRoom(null)} className="text-slate-400 hover:text-white cursor-pointer"><span className="material-symbols-outlined text-xl">close</span></button></div>
+                <div className="bg-dark-900 border border-dark-border rounded-2xl p-3"><div className="flex items-center justify-between"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{memberModalRoom.type} Capacity</span><span className="text-xs font-extrabold text-white">{memberModalRoom.membersList?.length || 1} / 6</span></div><div className="mt-2 h-2 bg-dark-700 rounded-full overflow-hidden"><div className="h-full bg-brand-500 rounded-full" style={{ width: `${Math.min(((memberModalRoom.membersList?.length || 1) / 6) * 100, 100)}%` }}></div></div></div>
+                <form onSubmit={handleAddMember} className="bg-dark-900/60 border border-dark-border rounded-2xl p-3 flex flex-col gap-3"><div className="flex items-center gap-2"><span className="material-symbols-outlined text-brand-400 text-base">person_add</span><span className="text-xs font-bold text-white">Add {memberModalRoom.type} Member</span></div><input type="text" placeholder="Member username" value={newMemberData.username} onChange={e => setNewMemberData({...newMemberData, username: e.target.value})} className="w-full px-3.5 py-2.5 rounded-xl border border-dark-border bg-dark-900 text-white text-xs outline-none focus:border-brand-500" required /><input type="email" placeholder="Member email" value={newMemberData.email} onChange={e => setNewMemberData({...newMemberData, email: e.target.value})} className="w-full px-3.5 py-2.5 rounded-xl border border-dark-border bg-dark-900 text-white text-xs outline-none focus:border-brand-500" required /><button type="submit" className="w-full bg-brand-600 hover:bg-brand-500 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"><span className="material-symbols-outlined text-sm">person_add</span>Add {memberModalRoom.type} Member</button></form>
+                {memberActionStatus && <div className="p-2.5 bg-brand-500/10 border border-brand-500/30 rounded-xl text-center text-[11px] text-brand-300 font-medium">{memberActionStatus}</div>}
+                <div className="flex flex-col gap-2"><div className="flex items-center justify-between"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current {memberModalRoom.type} Members</span><span className="text-[10px] text-slate-500">{memberModalRoom.membersList?.length || 1} total</span></div>{(memberModalRoom.membersList || []).map((member, idx) => (<div key={`${member.username}-${idx}`} className="bg-dark-900 border border-dark-border rounded-xl p-3 flex items-center justify-between gap-2"><div className="flex items-center gap-2.5 min-w-0"><div className="w-8 h-8 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center text-xs font-bold shrink-0">{(member.username || 'U').charAt(0).toUpperCase()}</div><div className="min-w-0"><div className="text-xs font-semibold text-white truncate">{member.username}</div><div className="text-[10px] text-slate-500 truncate">{member.email || 'No email'} • {member.role || 'Member'}</div></div></div>{member.role !== 'Admin' && <button type="button" onClick={() => handleRemoveMember(member.username)} className="w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 flex items-center justify-center cursor-pointer shrink-0"><span className="material-symbols-outlined text-sm">person_remove</span></button>}</div>))}</div>
+                <button onClick={() => setMemberModalRoom(null)} className="w-full bg-dark-700 hover:bg-dark-600 text-white py-2.5 rounded-xl font-semibold text-xs cursor-pointer">Close</button>
+              </div>
+            </div>
+          )}
+
+          {participantsModalRoom && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-dark-800 border border-dark-border rounded-3xl p-6 w-full max-w-sm flex flex-col gap-4 shadow-2xl">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-brand-400">group</span>
+                    Active Participants ({participantsModalRoom.members})
+                  </h3>
+                  <button onClick={() => setParticipantsModalRoom(null)} className="text-slate-400 hover:text-white cursor-pointer">
+                    <span className="material-symbols-outlined text-xl">close</span>
+                  </button>
+                </div>
+                <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                  {(participantsModalRoom.participants || [loggedInUser]).map((user, idx) => (
+                    <div key={idx} className="bg-dark-900 border border-dark-border rounded-xl p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center text-xs font-bold">
+                          {user.charAt(0)}
+                        </div>
+                        <span className="text-xs font-semibold text-white">{user}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => setParticipantsModalRoom(null)} className="w-full bg-dark-700 hover:bg-dark-600 text-white py-2.5 rounded-xl font-semibold text-xs cursor-pointer">Close</button>
+              </div>
+            </div>
+          )}
+
+          {managingRoom && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-dark-800 border border-dark-border rounded-3xl p-6 w-full max-w-sm flex flex-col gap-4 shadow-2xl">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-brand-400">settings</span>
+                    Manage Room
+                  </h3>
+                  <button onClick={() => setManagingRoom(null)} className="text-slate-400 hover:text-white cursor-pointer">
+                    <span className="material-symbols-outlined text-xl">close</span>
+                  </button>
+                </div>
+
+                <form onSubmit={handleUpdateManagedRoom} className="flex flex-col gap-3.5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">USER NAME</label>
+                    <input 
+                      type="text" 
+                      value={managingRoom.userName || ''} 
+                      readOnly
+                      className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900/50 text-slate-300 text-sm outline-none cursor-not-allowed select-none" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">EMAIL</label>
+                    <input 
+                      type="email" 
+                      value={managingRoom.email || ''} 
+                      readOnly
+                      className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900/50 text-slate-300 text-sm outline-none cursor-not-allowed select-none" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">ROOM NAME</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Delta Command" 
+                      className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900 text-white text-sm outline-none focus:border-brand-500" 
+                      value={managingRoom.name} 
+                      onChange={e => setManagingRoom({...managingRoom, name: e.target.value})} 
+                      required 
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">ROOM PASSCODE</label>
+                    <input 
+                      type="password" 
+                      placeholder="Enter room password" 
+                      className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900 text-white text-sm outline-none focus:border-brand-500" 
+                      value={managingRoom.secureKey} 
+                      onChange={e => setManagingRoom({...managingRoom, secureKey: e.target.value})} 
+                      required 
+                    />
+                  </div>
+
+                                    <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      ROOM VISIBILITY
+                    </label>
+
+                    <div className="flex items-center gap-1 p-1 rounded-xl bg-dark-900 border border-dark-border">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setManagingRoom({
+                            ...managingRoom,
+                            isPublic: false
+                          })
+                        }
+                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition ${
+                          !managingRoom.isPublic
+                            ? 'bg-slate-700 text-white shadow'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Private
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setManagingRoom({
+                            ...managingRoom,
+                            isPublic: true
+                          })
+                        }
+                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition ${
+                          managingRoom.isPublic
+                            ? 'bg-brand-500 text-white shadow'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Public
+                      </button>
+                    </div>
+
+                    <p className="text-[10px] text-slate-500 leading-relaxed">
+                      Public rooms can appear in public search, but the room passcode is still required to join.
+                    </p>
+                  </div>
+
+                  <button type="submit" className="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-bold text-xs mt-2 shadow-lg shadow-brand-600/25 transition-all cursor-pointer">
+                    Save Changes
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {isNewRoomModalOpen && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-dark-800 border border-dark-border rounded-3xl p-6 w-full max-w-sm flex flex-col gap-4 shadow-2xl">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white">Create New Room</h3>
+                  <button onClick={() => setIsNewRoomModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                    <span className="material-symbols-outlined text-xl">close</span>
+                  </button>
+                </div>
+                <form onSubmit={handleCreateRoom} className="flex flex-col gap-3.5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Room Name</label>
+                    <input type="text" placeholder="e.g. BraveNode507's Business Room" className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900 text-white text-sm outline-none focus:border-brand-500" value={newRoomData.name} onChange={e => setNewRoomData({...newRoomData, name: e.target.value})} required />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Room Category Type</label>
+                    <select className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900 text-white text-sm outline-none focus:border-brand-500" value={newRoomData.type} onChange={e => setNewRoomData({...newRoomData, type: e.target.value})}>
+                      <option value="Family">Family Room</option>
+                      <option value="Business">Business Room</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Email Address</label>
+                    <input 
+                      type="email" 
+                      value={loggedInEmail} 
+                      readOnly
+                      className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900/50 text-slate-300 text-sm outline-none cursor-not-allowed select-none" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">PASSCODE</label>
+                    <input type="password" placeholder="Enter secure passcode" className="w-full px-4 py-3 rounded-xl border border-dark-border bg-dark-900 text-white text-sm outline-none focus:border-brand-500" value={newRoomData.secureKey} onChange={e => setNewRoomData({...newRoomData, secureKey: e.target.value})} required />
+                  </div>
+
+                  <button type="submit" className="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-bold text-xs mt-2 cursor-pointer">Save &amp; Create Room</button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          <nav className="fixed bottom-0 w-full z-50 pb-safe bg-dark-800/85 backdrop-blur-md border-t border-dark-border">
+            <div className="flex justify-around items-center h-16 px-2 max-w-lg mx-auto">
+              <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center justify-center gap-1 w-full transition-colors cursor-pointer ${activeTab === 'home' ? 'text-brand-400 font-semibold' : 'text-slate-400'}`}>
+                <span className="material-symbols-outlined text-xl">home</span>
+                <span className="text-[10px]">Home</span>
+              </button>
+              <button onClick={() => setActiveTab('rooms')} className={`flex flex-col items-center justify-center gap-1 w-full transition-colors cursor-pointer ${activeTab === 'rooms' ? 'text-brand-400 font-semibold' : 'text-slate-400'}`}>
+                <span className="material-symbols-outlined text-xl">forum</span>
+                <span className="text-[10px]">Rooms</span>
+              </button>
+              <button onClick={() => setActiveTab('payments')} className={`flex flex-col items-center justify-center gap-1 w-full transition-colors cursor-pointer ${activeTab === 'payments' ? 'text-brand-400 font-semibold' : 'text-slate-400'}`}>
+                <span className="material-symbols-outlined text-xl">payments</span>
+                <span className="text-[10px]">Pay</span>
+              </button>
+              <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center justify-center gap-1 w-full transition-colors cursor-pointer ${activeTab === 'profile' ? 'text-brand-400 font-semibold' : 'text-slate-400'}`}>
+                <span className="material-symbols-outlined text-xl">account_circle</span>
+                <span className="text-[10px]">Profile</span>
+              </button>
+            </div>
+          </nav>
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
